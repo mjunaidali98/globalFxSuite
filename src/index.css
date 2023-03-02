@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* @font-face {
+  font-family: ;
+  src: url("../public/images/Fonts");
+} */
+
+@layer components {
+  .header {
+    @apply text-[24px] font-semibold;
+  }
+  .nav_class {
+    @apply flex items-center space-x-4 cursor-pointer transition-all duration-75;
+  }
+  .btn_active {
+    @apply !bg-[#6469EE] !text-[#FFFFFF];
+  }
+}
+
+/*  */
+
+.bxUOeX:hover,
+.bxUOeX:hover svg {
+  background: #fce36e !important;
+  fill: #000 !important;
+}
+
+.bxUOeX svg {
+  fill: #fff !important;
+}
+
+.cIFnvd:hover {
+  background: #fce36e !important;
+  color: #000 !important;
+}
+
+.wellcome-image {
+  background-image: url("../public/images/Dashboard_WelcomeBanner_Background_Design.svg");
+  background-repeat: no-repeat;
+  background-position: right;
+  height: 100%;
+}
+progress[value]::-webkit-progress-bar {
+  background-color: #f4f4f4;
+  border-radius: 20px;
+  /* box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25) inset; */
+}
+
+progress[value] {
+  height: 7px;
+  border-radius: 20px;
+}
+
+progress[value]::-webkit-progress-value {
+  border-radius: 20px;
+  background: #677be7;
+}
+
+.scrollbar_edit::-webkit-scrollbar {
+  width: 7px;
+}
+.scrollbar_edit::-webkit-scrollbar-thumb {
+  background-color: #383838;
+  border-radius: 30px;
+}
+.scrollbar_edit::-webkit-scrollbar-track {
+  background-color: #fafafa;
+}
+
+.css-19xm0h7-MuiButtonBase-root-MuiPaginationItem-root.Mui-selected {
+  background-color: #00a3ff !important;
+  color: #ffffff !important;
+}
+
+.css-19xm0h7-MuiButtonBase-root-MuiPaginationItem-root {
+  border: none !important;
+  color: #7e8299 !important;
+  border-radius: 6px !important;
+}
