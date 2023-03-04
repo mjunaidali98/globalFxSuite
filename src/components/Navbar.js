@@ -36,6 +36,7 @@ const Navbar = () => {
             <NavLink onClick={() => setActive(link)} key={id} to={link}>
               <div className="flex items-center space-x-4 cursor-pointer transition-all duration-75">
                 <img
+                  alt=""
                   className="w-[17px] h-5"
                   src={active === link ? selectedIcon : icon}
                 />

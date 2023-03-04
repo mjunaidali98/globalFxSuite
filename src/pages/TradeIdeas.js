@@ -23,15 +23,30 @@ const TradeIdeas = () => {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
   const status = 'active';
+  const archived = true;
+  const [tab, setTab] = useState(1);
+
   const [lastVisible, setLastVisible] = useState(null);
   const [firstVisible, setFirstVisible] = useState(null);
   const [loading, setLoading] = useState(false);
   const [countTradeIdeas, setCountTradeIdeas] = useState(null);
-  const [tab, setTab] = useState(1);
+  const [archivedTradeIdeas, setArchivedTradeIdeas] = useState([]);
+  const [lastArchivedVisible, setLastArchivedVisible] = useState(null);
+  const [firstArchivedVisible, setFirstArchivedVisible] = useState(null);
+  const [archivedPage, setArchivedPage] = useState(1);
+  const [archivedCountTradeIdeas, setArchivedCountTradeIdeas] = useState(null);
+
+
 
   useEffect(() => {
     const q = query(collection(db, "trade_ideas"),
       where('status', '==', status),
+      orderBy("timestamp", "desc"),
+      limit(PAGE_SIZE),
+    );
+
+    const a_q = query(collection(db, "trade_ideas"),
+      where('archived', '==', archived),
       orderBy("timestamp", "desc"),
       limit(PAGE_SIZE),
     );
@@ -46,17 +61,32 @@ const TradeIdeas = () => {
           ...document.data(),
         });
       });
+
       setTradeIdeas(tradeIdeas);
       setLastVisible(documents.docs[documents.docs.length - 1]);
       setFirstVisible(documents.docs[0]);
       setLoading(false);
+
+      //ARCHIVED TRADES STARTS
+      const documents_archived = await getDocs(a_q);
+      const archivedtradeIdeas = [];
+      documents_archived.forEach((document) => {
+        archivedtradeIdeas.push({
+          id: document.id,
+          ...document.data(),
+        });
+      });
+
+      setArchivedTradeIdeas(archivedtradeIdeas);
+      setLastArchivedVisible(documents_archived.docs[documents_archived.docs.length - 1]);
+      setFirstArchivedVisible(documents_archived.docs[0]);
+      //ARCHIVED TRADES END
     };
     return () => unsubscribe();
-  }, []);
+  }, [archived]);
 
   const nextPage = async () => {
     setLoading(true);
-
     const tradeRef = collection(db, "trade_ideas");
     const q = query(
       tradeRef,
@@ -110,25 +140,102 @@ const TradeIdeas = () => {
   };
 
   useEffect(() => {
-    const countTradeIdeas = async () => {
+    async function countTradeIdeas() {
       const q = query(collection(db, 'trade_ideas'), where('status', '==', status));
       const snapshot = await getDocsFromServer(q);
       setCountTradeIdeas(snapshot.size);
-      // setCountTradeIdeas(snapshot.data().count);
+
+      const a_q = query(collection(db, 'trade_ideas'), where('archived', '==', archived));
+      const snapshot_archived = await getDocsFromServer(a_q);
+      setArchivedCountTradeIdeas(snapshot_archived.size);
     };
+
     countTradeIdeas();
-  }, []);
+  }, [archived]);
+
+  const nextArchivedPage = async () => {
+    setLoading(true);
+    const tradeArchivedRef = collection(db, "trade_ideas");
+    const a_q = query(
+      tradeArchivedRef,
+      where('archived', '==', archived),
+      orderBy("timestamp", "desc"),
+      startAfter(lastArchivedVisible.data().timestamp), // Pass the reference
+      limit(PAGE_SIZE)
+    );
+    const documents_archived = await getDocs(a_q);
+    updateArchivedState(documents_archived);
+    setLoading(false);
+  };
+
+  const previousArchivedPage = async () => {
+    setLoading(true);
+    const tradeArchivedRef = collection(db, "trade_ideas");
+    const a_q = query(
+      tradeArchivedRef,
+      where('archived', '==', archived),
+      orderBy("timestamp", "desc"),
+      endAt(firstArchivedVisible.data().timestamp), // Use `endAt()` method and pass the reference
+      limit(PAGE_SIZE)
+    );
+    const documents_archived = await getDocs(a_q);
+    updateArchivedState(documents_archived);
+    setLoading(false);
+  };
+
+  const updateArchivedState = (documents) => {
+    if (!documents.empty) {
+      const archivedtradeIdeas = [];
+      documents.forEach((document) => {
+        archivedtradeIdeas.push({
+          id: document.id,
+          ...document.data(),
+        });
+      });
+      setArchivedTradeIdeas(archivedtradeIdeas);
+    }
+    if (documents?.docs[0]) {
+      setFirstArchivedVisible(documents.docs[0]);
+    }
+    if (documents?.docs[documents.docs.length - 1]) {
+      setLastArchivedVisible(documents.docs[documents.docs.length - 1]);
+    }
+  };
+
+  const handleArchivedChange = (event, value) => {
+    value > archivedPage ? nextArchivedPage() : previousArchivedPage();
+    setArchivedPage(value);
+  };
 
   const renderElement = (value) => {
     switch (value) {
       case 2: {
         return (
-          <div className="flex flex-col items-center mt-8 justify-between ">
+          <div className="flex flex-col mt-8 justify-between">
             <h2 className="header">Archived</h2>
-
-            <h3 className="text-[32px] font-bold text-[#B5B5C3]">
-              Coming Soon
-            </h3>
+            <TradeBox
+              tradeIdeas={archivedTradeIdeas}
+              expand={expand}
+              setExpand={setExpand}
+            />
+            {archivedCountTradeIdeas > PAGE_SIZE && (
+              <div className="mt-9 flex justify-between items-center">
+                <p className="text-[14px] font-medium text-[#5E6278]">
+                  Showing {PAGE_SIZE * archivedPage - PAGE_SIZE} to {PAGE_SIZE * archivedPage <= (archivedCountTradeIdeas) ? (PAGE_SIZE * archivedPage) : archivedCountTradeIdeas} of{" "}
+                  {archivedCountTradeIdeas} entries
+                </p>
+                <Pagination
+                  variant="outlined"
+                  shape="rounded"
+                  style={{
+                    marginTop: "20px",
+                  }}
+                  count={Math.ceil(archivedCountTradeIdeas / PAGE_SIZE)}
+                  page={archivedPage}
+                  onChange={handleArchivedChange}
+                />
+              </div>
+            )}
           </div>
         )
       }
@@ -138,7 +245,6 @@ const TradeIdeas = () => {
           return (
             <React.Fragment>
               <h2 className="header mt-8">Most Recent Trade Ideas</h2>
-
               <TradeBox
                 tradeIdeas={tradeIdeas}
                 expand={expand}

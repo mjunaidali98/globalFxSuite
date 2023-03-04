@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, {  useState } from "react";
 import Calendar from "moedim";
 import styled from "@emotion/styled";
 
@@ -52,17 +52,17 @@ const StyledCalendar = styled(Calendar)(({ theme }) => ({
 
 const RightSidebar = () => {
   const [value, setValue] = useState(new Date());
-  const [nextActive, setNextActive] = useState(false);
-  const [previousActive, setPreviousActive] = useState(false);
+  // const [nextActive, setNextActive] = useState(false);
+  // const [previousActive, setPreviousActive] = useState(false);
 
   const handleChange = (d) => {
     if (d > new Date()) {
-      setNextActive(true);
+      // setNextActive(true);
     } else if (d < new Date()) {
-      setPreviousActive(true);
+      // setPreviousActive(true);
     } else {
-      setNextActive(false);
-      setPreviousActive(false);
+      // setNextActive(false);
+      // setPreviousActive(false);
     }
     setValue(d);
   };
