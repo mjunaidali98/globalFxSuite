@@ -20,9 +20,11 @@ body {
   .header {
     @apply text-[24px] font-semibold;
   }
+
   .nav_class {
     @apply flex items-center space-x-4 cursor-pointer transition-all duration-75;
   }
+
   .btn_active {
     @apply !bg-[#6469EE] !text-[#FFFFFF];
   }
@@ -51,6 +53,7 @@ body {
   background-position: right;
   height: 100%;
 }
+
 progress[value]::-webkit-progress-bar {
   background-color: #f4f4f4;
   border-radius: 20px;
@@ -70,10 +73,12 @@ progress[value]::-webkit-progress-value {
 .scrollbar_edit::-webkit-scrollbar {
   width: 7px;
 }
+
 .scrollbar_edit::-webkit-scrollbar-thumb {
   background-color: #383838;
   border-radius: 30px;
 }
+
 .scrollbar_edit::-webkit-scrollbar-track {
   background-color: #fafafa;
 }
@@ -87,4 +92,131 @@ progress[value]::-webkit-progress-value {
   border: none !important;
   color: #7e8299 !important;
   border-radius: 6px !important;
+}
+
+.rbc-off-range {
+  /* visibility: hidden !important; */
+  color: #fff;
+  opacity: 0.4;
+  cursor: none !important;
+  pointer-events: none !important;
+}
+.rbc-off-range:hover {
+  /* visibility: hidden !important; */
+  color: #fff;
+  opacity: 0.4;
+  cursor: none !important;
+}
+
+.rbc-off-range-bg {
+  background: #677be7 !important;
+}
+
+.rbc-row {
+  padding-top: 5px !important;
+  height: auto !important;
+}
+
+.rbc-row-content {
+  /* position: relative !important; */
+  height: 100% !important;
+}
+
+.rbc-toolbar-label {
+  letter-spacing: 0.25px;
+  line-height: 20px;
+  padding-left: 5px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff !important;
+  border: "none";
+
+}
+
+.rbc-button-link {
+  min-height: 24px !important;
+  min-width: 24px !important;
+}
+
+.rbc-date-cell,
+.rbc-header,
+.rbc-show-more {
+  text-align: center !important;
+  padding: 0px !important;
+  align-items: center !important;
+  color: #fff !important;
+  background-color: transparent !important;
+  border-radius: 0% !important;
+  font-size: 12px !important;
+  height: 100% !important;
+  width: 100% !important;
+  line-height: 24px;
+  display: table-cell;
+  font-weight: 500;
+  vertical-align: middle;
+  outline: none;
+  background: transparent;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.rbc-event{
+ background-color: #5E616D !important;
+}
+.rbc-show-more{
+  color: #5E616D !important;
+}
+/* .rbc-row-segment{
+
+  height: 25px !important;
+  width: 25px !important;
+} */
+
+.rbc-header {
+  cursor: default !important;
+  font-weight: bold !important;
+}
+
+.rbc-button-link:hover {
+  background-color: #fce36e !important;
+  color: #000 !important;
+  border-radius: 5px !important;
+}
+
+.rbc-month-row,
+.rbc-month-view,
+.rbc-header {
+  border: none !important;
+  overflow: visible !important;
+}
+
+.rbc-month-view{
+  margin-top: 20px;
+}
+
+.rbc-header {
+  height: 24px !important;
+  width: 24px !important;
+}
+
+/* .rbc-month-header {
+  height: 24px !important;
+} */
+
+.rbc-toolbar {
+  flex-direction: row-reverse !important;
+}
+
+.rbc-row-bg {
+  position: unset !important;
+  display: none !important;
+}
+
+.rbc-today {
+  background-color: #fce36e !important;
+}
+
+.rbc-current>.rbc-button-link {
+  color: #000 !important;
+  border-radius: 5px !important;
+  background-color: #fce36e !important;
 }
