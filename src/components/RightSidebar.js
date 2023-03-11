@@ -1,142 +1,112 @@
-import React, { useState } from "react";
-// import Calendar from "moedim";
-// import styled from "@emotion/styled";
+import React, { useState, useEffect } from "react";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  limit,
+} from "firebase/firestore";
+import { db } from "../components/firebase";
+
 import { Calendar as BigCalender, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
-
 import "react-big-calendar/lib/css/react-big-calendar.css";
-// const StyledCalendar = styled(Calendar)`
-//   --moedim-primary: #f00;
-// `;
 
-// const StyledCalendar = styled(Calendar)(({ theme }) => ({
-//   backgroundColor: "#677be7",
-//   color: "#FFFFFF",
-//   border: "none",
-//   minWidth: "100%",
-//   padding: "30px",
-//   borderRadius: "10px",
-//   '& .cIFnvd[aria-pressed="true"]': {
-//     background: "#fce36e",
-//     borderRadius: "5px !important",
-//     color: "#000",
-//   },
-//   "& .fatsuA": {
-//     marginTop: "14px",
-//   },
-//   "& .cfqheK": {
-//     minWidth: "100%",
-//     display: "grid",
-//     gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-//     paddingTop: "5px",
-//   },
-//   "& .cuRXYf": {
-//     borderBottom: "0.5px solid #FFFFFF",
-//     paddingBottom: "20px",
-//   },
-//   "& .cIFnvd": {
-//     border: "none",
-//     fontSize: "12px",
-//     borderRadius: "15%",
-//   },
-//   "& bxUOeX": {
-//     borderRadius: "15%",
-//     width: "33px",
-//     height: "33px",
-//     backgroundColor: "transparent",
-//   },
-//   "& .kVEIdA": {
-//     color: "#fff",
-//     borderRadius: "0%",
-//     fontSize: "12px",
-//     fontWeight: "bold",
-//   },
-// }));
-// locale = "en-US"
 const RightSidebar = () => {
   const localizer = momentLocalizer(moment)
   const [showModal, setShowModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [schedule, setSchedule] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [pageSize, setPageSize] = useState(3);
+  const scheduleCollectionRef = collection(db, "schedule");
+  const announcementsCollectionRef = collection(db, "announcements");
+  const memberCollectionRef = collection(db, 'members');
+  useEffect(() => {
+    const q = query(scheduleCollectionRef, orderBy("timestamp", "desc"));
 
+    const q_announcements = query(announcementsCollectionRef, orderBy("timestamp", "desc"));
+
+    const unsubscribe = async () => {
+      const documents = await getDocs(q);
+      const schedule = [];
+
+      const announcementsDocuments = await getDocs(q_announcements);
+      const announcementsDocs = [];
+
+      documents.forEach((document) => {
+        schedule.push({
+          id: document.id,
+          ...document.data(),
+        });
+      });
+
+      announcementsDocuments.forEach(async (document) => {
+        const announcement = document.data();
+        const sender = await getMemberBySenderId(announcement.sender);
+        if (sender) {
+          announcementsDocs.push({
+            id: document.id,
+            ...announcement,
+            user: sender,
+          });
+        }
+      });
+
+      setAnnouncements(announcementsDocs);
+
+      const defaultDuration = 60; // 1 hour in minutes
+      const eventsWithDefaultDuration = schedule.map((event) => {
+        let startTime = new Date(event.timestamp * 1000);
+        return {
+          ...event,
+          start: startTime,
+          end: new Date(startTime.getTime() + (defaultDuration * 60000)),
+        };
+      });
+      setSchedule(eventsWithDefaultDuration);
+
+    };
+    return () => unsubscribe();
+  }, []);
+
+  const getMemberBySenderId = async (senderId) => {
+    try {
+      const memberDocSnapshot = await getDoc(doc(memberCollectionRef, senderId));
+      if (!memberDocSnapshot.exists()) {
+        console.log('No matching document.');
+        return null;
+      }
+      const memberData = memberDocSnapshot.data();
+      const member = { ...memberData, id: senderId }
+      return member;
+    } catch (e) {
+      console.error('Error getting member: ', e);
+      return null;
+    }
+  };
 
   const handleEventClick = (event) => {
     setSelectedEvent(event);
     setShowModal(true);
   };
 
-  const converTimeStampToDate = (timeStamp) => {
-    var timestamp = timeStamp ? timeStamp : 1677958601;
-    const date = new Date(timestamp * 1000);
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-    const seconds = date.getSeconds();
-    return new Date(`${year}-${month}-${day} ${hours}:${minutes}:${seconds}`);
-  }
-
-  const events = [
-    {
-      'title': 'All Day Event very long title',
-      'start': converTimeStampToDate(1677996881),
-    },
-    {
-      'title': 'Long Event',
-      'start': converTimeStampToDate(1677996881),
-    },
-
-    {
-      'title': 'DTS STARTS',
-      'start': new Date(2023, 3, 13),
-    },
-
-    {
-      'title': 'DTS ENDS',
-      'start': converTimeStampToDate(1677996881),
-    },
-
-    {
-      'title': 'Some Event',
-      'start': new Date(2023, 2, 9),
-    },
-    {
-      'title': 'Conference',
-      'start': new Date(2023, 2, 11),
-      desc: 'Big conference for important people'
-    },
-    {
-      'title': 'Meeting',
-      'start': new Date(2023, 2, 6, 2, 0),
-      desc: 'Pre-meeting meeting, to prepare for the meeting'
-    },
-  ];
-
-  const defaultDuration = 60; // 1 hour in minutes
-
-  const eventsWithDefaultDuration = events.map((event) => {
-    return {
-      ...event,
-      end: new Date(event.start.getTime() + defaultDuration * 60000),
-    };
-  });
-  // const [value, setValue] = useState(new Date());
-
-  // const handleChange = (d) => {
-  //   if (d > new Date()) {
-  //   } else if (d < new Date()) {
-  //     // setPreviousActive(true);
-  //   } else {
-  //   }
-  //   setValue(d);
-  // };
+  const updateState = () => {
+    if (announcements.length !== pageSize) {
+      setPageSize(announcements.length);
+    } else {
+      setPageSize(3);
+    }
+  };
 
 
   const formats = {
     weekdayFormat: (date, culture, localizer) =>
       localizer.format(date, 'dd').charAt(0),
   };
-  
+
   const MyToolbar = (toolbar) => {
     const { label } = toolbar;
     return (
@@ -222,12 +192,12 @@ const RightSidebar = () => {
           startAccessor="start"
           endAccessor="end"
           localizer={localizer}
-          events={eventsWithDefaultDuration}
+          events={schedule}
           onSelectEvent={handleEventClick}
           defaultView="month"
         />
-        <div className={`${showModal ? "absolute" : "hidden"} top-[185.5px] z-10`}>
-          <div className="w-full h-1/2 flex flex-col justify-end p-5 shadow-lg z-[100] border border-gray-200 bg-white">
+        <div className={`${showModal ? "absolute" : "hidden"} w-full left-0 right-0 top-0 z-10`}>
+          <div className="w-full h-1/2 flex flex-col justify-end p-5 shadow-lg z-[100] border border-gray-200 bg-white rounded-lg bg-opacity-80">
             <h3 className="text-[16px] font-bold text-[#5E616D] my-3">{selectedEvent?.title}</h3>
             <p className="text-base font-normal text-[#5E616D]">
               Start: {selectedEvent?.start?.toLocaleString()}<br />
@@ -239,28 +209,57 @@ const RightSidebar = () => {
       <div>
         <div className="flex items-center mb-3 justify-between">
           <h5 className="text-[20px] font-semibold">Announcements</h5>
-          <p className="text-[#5E616D] text-[16px] cursor-pointer font-medium">
-            See All
-          </p>
-        </div>
-        <div className="bg-[#262626] rounded-lg p-3">
-          <div className="flex items-center space-x-1 mb-2">
-            <img
-              className="rounded-full object-cover w-[28px] h-[28px]"
-              src="images/announce_profile_image.jfif"
-              alt="profile_imagge"
-            />
-            <p className="text-[13px] text-[#FFFFFF] font-medium">
-              Toby Barfield
+          {announcements.length > 3 &&
+            <p role={"button"} onClick={() => updateState()} className="text-[#5E616D] text-[16px] cursor-pointer font-medium">
+              {announcements.length === pageSize ? "See less" : "See more"}
             </p>
-          </div>
-          <p className="text-[#FFFFFF] text-[11px] mb-3">
-            Welcome to Global FX Suite Guys! This is the start of something
-            great!
-          </p>
-          <p className="text-[9px] text-[#FFFFFF]">15 min ago</p>
+          }
         </div>
-        <div className="bg-[#FFFFFF] rounded-lg p-3">
+        {announcements.slice(0, pageSize).map((item) => {
+          console.log("item", item)
+          return (
+            <React.Fragment>
+              <div className="bg-[#262626] rounded-lg p-3">
+                <div className="flex items-center space-x-1 mb-2">
+                  <img
+                    className="rounded-full object-cover w-[28px] h-[28px]"
+                    src="images/announce_profile_image.jfif"
+                    alt="profile_imagge"
+                  />
+                  <p className="text-[13px] text-[#FFFFFF] font-medium">
+                    {item.user.name}
+                  </p>
+                </div>
+                <p className="text-[#FFFFFF] text-[11px] mb-3">
+                  Welcome to Global FX Suite Guys! This is the start of something
+                  great!
+                </p>
+                <p className="text-[9px] text-[#FFFFFF]">15 min ago</p>
+              </div>
+
+              <div className="bg-[#FFFFFF] rounded-lg p-3">
+                <div className="flex items-center space-x-1 mb-2">
+                  <img
+                    className="rounded-full object-cover w-[28px] h-[28px]"
+                    src="images/announce_profile_image.jfif"
+                    alt="profile_imagge"
+                  />
+                  <p className="text-[13px] font-medium text-[#040404]">
+                    Tonya Hannibal
+                  </p>
+                </div>
+                <p className="text-[#5E616D] text-[11px] mb-3">
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+                  eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+                  ad minim veniam, quis nostrud exercitation ullamco.
+                </p>
+                <p className="text-[9px] text-[#5E616D]">2 hours ago</p>
+              </div>
+            </React.Fragment>
+          )
+        })}
+
+        {/* <div className="bg-[#FFFFFF] rounded-lg p-3">
           <div className="flex items-center space-x-1 mb-2">
             <img
               className="rounded-full object-cover w-[28px] h-[28px]"
@@ -295,7 +294,7 @@ const RightSidebar = () => {
             ad minim veniam, quis nostrud exercitation ullamco.
           </p>
           <p className="text-[9px] text-[#5E616D]">2 hours ago</p>
-        </div>
+        </div> */}
       </div>
 
     </div>

@@ -16,8 +16,7 @@ const Layout = () => {
         </div>
         <div
           style={{ minHeight: "calc(100vh - 100px)" }}
-          className="bg-[#F6F6F6]"
-        >
+          className="bg-[#F6F6F6]">
           <Outlet />
         </div>
       </div>

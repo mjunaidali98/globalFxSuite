@@ -28,6 +28,19 @@ const ResourceTab = ({ tab, setTab }) => {
           Articles
         </button>
       </div>
+
+      <div
+        onClick={() => tab !== 3 && setTab(3)}
+        className={
+          tab === 3
+            ? "bg-[#6469EE] text-[#FFFFFF] rounded-md"
+            : "bg-[#FFFFFF] text-[#5E616D] rounded-md"
+        }
+      >
+        <button className=" text-[13px] font-bold px-3 py-2 rounded-md cursor-pointer">
+          Saved
+        </button>
+      </div>
       {/* <NavLink
         to="/resource"
         className={({ isActive }) =>
