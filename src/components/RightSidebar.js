@@ -6,13 +6,14 @@ import {
   getDocs,
   orderBy,
   query,
-  limit,
 } from "firebase/firestore";
 import { db } from "../components/firebase";
 
 import { Calendar as BigCalender, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import Loader from "./loader";
+import { timeSince } from "../functions";
 
 const RightSidebar = () => {
   const localizer = momentLocalizer(moment)
@@ -24,7 +25,11 @@ const RightSidebar = () => {
   const scheduleCollectionRef = collection(db, "schedule");
   const announcementsCollectionRef = collection(db, "announcements");
   const memberCollectionRef = collection(db, 'members');
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
+    setLoading(true);
+
     const q = query(scheduleCollectionRef, orderBy("timestamp", "desc"));
 
     const q_announcements = query(announcementsCollectionRef, orderBy("timestamp", "desc"));
@@ -33,30 +38,12 @@ const RightSidebar = () => {
       const documents = await getDocs(q);
       const schedule = [];
 
-      const announcementsDocuments = await getDocs(q_announcements);
-      const announcementsDocs = [];
-
       documents.forEach((document) => {
         schedule.push({
           id: document.id,
           ...document.data(),
         });
       });
-
-      announcementsDocuments.forEach(async (document) => {
-        const announcement = document.data();
-        const sender = await getMemberBySenderId(announcement.sender);
-        if (sender) {
-          announcementsDocs.push({
-            id: document.id,
-            ...announcement,
-            user: sender,
-          });
-        }
-      });
-
-      setAnnouncements(announcementsDocs);
-
       const defaultDuration = 60; // 1 hour in minutes
       const eventsWithDefaultDuration = schedule.map((event) => {
         let startTime = new Date(event.timestamp * 1000);
@@ -68,11 +55,30 @@ const RightSidebar = () => {
       });
       setSchedule(eventsWithDefaultDuration);
 
-    };
-    return () => unsubscribe();
-  }, []);
+      const announcementsDocuments = await getDocs(q_announcements);
+      let announcementsDocs = [];
+      announcementsDocuments.forEach(async (doc) => {
+        announcementsDocs.push({
+          id: doc.id,
+          ...doc.data(),
+        });
+      });
+      announcementsDocs = announcementsDocs.map(async (item) => {
+        let user = await getMemberBySenderId(item.sender);
+        return { ...item, user }
+      })
+      let data = await Promise.all(announcementsDocs)
+      setAnnouncements(data);
+      setLoading(false);
 
-  const getMemberBySenderId = async (senderId) => {
+    };
+
+    return () => unsubscribe();
+    // eslint-disable-next-line
+  }, []);
+  // eslint-enable-next-line
+
+  async function getMemberBySenderId(senderId) {
     try {
       const memberDocSnapshot = await getDoc(doc(memberCollectionRef, senderId));
       if (!memberDocSnapshot.exists()) {
@@ -80,8 +86,8 @@ const RightSidebar = () => {
         return null;
       }
       const memberData = memberDocSnapshot.data();
-      const member = { ...memberData, id: senderId }
-      return member;
+      const member = { id: memberDocSnapshot.id, ...memberData }
+      return member
     } catch (e) {
       console.error('Error getting member: ', e);
       return null;
@@ -132,7 +138,7 @@ const RightSidebar = () => {
 
   return (
     <div className="w-[380px] p-6 border-l space-y-9">
-      <div className="bg-[#1E2C7C] grid place-items-center p-[35px] rounded-lg">
+      <div className="bg-[#1E2C7C] grid place-items-center p-[35px] rounded-xl">
         <div className="grid place-items-center">
           <img
             className="w-[100px] h-[100px] rounded-full object-cover"
@@ -151,16 +157,16 @@ const RightSidebar = () => {
             Verified Student
           </p>
         </div>
-        <div className="flex itmes-center space-x-2 mt-2">
-          <div className="bg-[#ffffff3d] p-2 text-[#FFFFFF] text-center place-items-center rounded-md">
+        <div className="grid grid-cols-3 itmes-center space-x-2 mt-2">
+          <div className="bg-[#ffffff3d] p-2 text-[#FFFFFF] text-center place-items-center rounded-xl">
             <p className="text-[21px] font-bold">32</p>
             <p className="text-[12px]">Total Course</p>
           </div>
-          <div className="bg-[#ffffff3d] p-2 text-[#FFFFFF] grid text-center place-items-center rounded-md">
+          <div className="bg-[#ffffff3d] p-2 text-[#FFFFFF] text-center place-items-center rounded-xl">
             <p className="text-[21px] font-bold">120</p>
             <p className="text-[12px]">Study Hours</p>
           </div>
-          <div className="bg-[#ffffff3d] p-2 text-[#FFFFFF] grid text-center place-items-center rounded-md">
+          <div className="bg-[#ffffff3d] p-2 text-[#FFFFFF] text-center place-items-center rounded-xl">
             <p className="text-[21px] font-bold">5.0</p>
             <p className="text-[12px]">Rating</p>
           </div>
@@ -197,7 +203,7 @@ const RightSidebar = () => {
           defaultView="month"
         />
         <div className={`${showModal ? "absolute" : "hidden"} w-full left-0 right-0 top-0 z-10`}>
-          <div className="w-full h-1/2 flex flex-col justify-end p-5 shadow-lg z-[100] border border-gray-200 bg-white rounded-lg bg-opacity-80">
+          <div className="w-full h-1/2 flex flex-col justify-end p-5 shadow-lg z-[100] border border-gray-200 bg-white rounded-xl bg-opacity-80">
             <h3 className="text-[16px] font-bold text-[#5E616D] my-3">{selectedEvent?.title}</h3>
             <p className="text-base font-normal text-[#5E616D]">
               Start: {selectedEvent?.start?.toLocaleString()}<br />
@@ -209,94 +215,64 @@ const RightSidebar = () => {
       <div>
         <div className="flex items-center mb-3 justify-between">
           <h5 className="text-[20px] font-semibold">Announcements</h5>
-          {announcements.length > 3 &&
-            <p role={"button"} onClick={() => updateState()} className="text-[#5E616D] text-[16px] cursor-pointer font-medium">
-              {announcements.length === pageSize ? "See less" : "See more"}
-            </p>
-          }
+          {
+            announcements.length && announcements.length > 3 ?
+              <p role={"button"} onClick={() => updateState()} className="text-[#5E616D] text-[16px] cursor-pointer font-medium">
+                {announcements.length === pageSize ? "Hide" : "See more"}
+              </p>
+              : ""}
         </div>
-        {announcements.slice(0, pageSize).map((item) => {
-          console.log("item", item)
-          return (
-            <React.Fragment>
-              <div className="bg-[#262626] rounded-lg p-3">
-                <div className="flex items-center space-x-1 mb-2">
-                  <img
-                    className="rounded-full object-cover w-[28px] h-[28px]"
-                    src="images/announce_profile_image.jfif"
-                    alt="profile_imagge"
-                  />
-                  <p className="text-[13px] text-[#FFFFFF] font-medium">
-                    {item.user.name}
-                  </p>
-                </div>
-                <p className="text-[#FFFFFF] text-[11px] mb-3">
-                  Welcome to Global FX Suite Guys! This is the start of something
-                  great!
-                </p>
-                <p className="text-[9px] text-[#FFFFFF]">15 min ago</p>
-              </div>
+        {loading ?
+          <div className="w-full items-center flex justify-center my-5">
+            <Loader />
+          </div> :
+          !announcements.length ?
+            <p className="text-gray-400"> No announcements</p>
+            :
+            announcements.slice(0, pageSize).map((item, idx) => {
+              console.log("item", item)
+              return (
 
-              <div className="bg-[#FFFFFF] rounded-lg p-3">
-                <div className="flex items-center space-x-1 mb-2">
-                  <img
-                    className="rounded-full object-cover w-[28px] h-[28px]"
-                    src="images/announce_profile_image.jfif"
-                    alt="profile_imagge"
-                  />
-                  <p className="text-[13px] font-medium text-[#040404]">
-                    Tonya Hannibal
-                  </p>
-                </div>
-                <p className="text-[#5E616D] text-[11px] mb-3">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-                  eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-                  ad minim veniam, quis nostrud exercitation ullamco.
-                </p>
-                <p className="text-[9px] text-[#5E616D]">2 hours ago</p>
-              </div>
-            </React.Fragment>
-          )
-        })}
-
-        {/* <div className="bg-[#FFFFFF] rounded-lg p-3">
-          <div className="flex items-center space-x-1 mb-2">
-            <img
-              className="rounded-full object-cover w-[28px] h-[28px]"
-              src="images/announce_profile_image.jfif"
-              alt="profile_imagge"
-            />
-            <p className="text-[13px] font-medium text-[#040404]">
-              Tonya Hannibal
-            </p>
-          </div>
-          <p className="text-[#5E616D] text-[11px] mb-3">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-            eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-            ad minim veniam, quis nostrud exercitation ullamco.
-          </p>
-          <p className="text-[9px] text-[#5E616D]">2 hours ago</p>
-        </div>
-        <div className="bg-[#FFFFFF] rounded-lg p-3">
-          <div className="flex items-center space-x-1 mb-2">
-            <img
-              className="rounded-full object-cover w-[28px] h-[28px]"
-              src="images/announce_profile_image.jfif"
-              alt="profile_imagge"
-            />
-            <p className="text-[13px] font-medium text-[#040404]">
-              Tonya Hannibal
-            </p>
-          </div>
-          <p className="text-[#5E616D] text-[11px] mb-3">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-            eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-            ad minim veniam, quis nostrud exercitation ullamco.
-          </p>
-          <p className="text-[9px] text-[#5E616D]">2 hours ago</p>
-        </div> */}
+                <React.Fragment>
+                  {!idx &&
+                    <div className="bg-[#262626] rounded-xl p-3">
+                      <div className="flex items-center space-x-1 mb-2">
+                        <img
+                          className="rounded-full object-cover w-[28px] h-[28px]"
+                          src={item.user.photo}
+                          alt="profile_imagge"
+                        />
+                        <p className="text-[13px] text-[#FFFFFF] font-medium">
+                          {item.user.name}
+                        </p>
+                      </div>
+                      <p className="text-[#FFFFFF] text-[11px] mb-3">
+                        Welcome to Global FX Suite Guys! This is the start of something
+                        great!
+                      </p>
+                      <p className="text-[9px] text-[#FFFFFF]">{timeSince(item.timestamp)}</p>
+                    </div>
+                  }
+                  <div className="bg-[#FFFFFF] rounded-xl p-3">
+                    <div className="flex items-center space-x-1 mb-2">
+                      <img
+                        className="rounded-full object-cover w-[28px] h-[28px]"
+                        src={item.user.photo}
+                        alt="profile_imagge"
+                      />
+                      <p className="text-[13px] font-medium text-[#040404]">
+                        {item.user.name}
+                      </p>
+                    </div>
+                    <p className="text-[#5E616D] text-[11px] mb-3">
+                      {item.content}
+                    </p>
+                    <p className="text-[9px] text-[#5E616D]">{timeSince(item.timestamp)}</p>
+                  </div>
+                </React.Fragment>
+              )
+            })}
       </div>
-
     </div>
   );
 };
